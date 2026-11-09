@@ -108,6 +108,10 @@ const pieces: Record<Team, Record<PieceType, string>> = {
 export default function Board() {
   const [board, setBoard] = useState<BoardState>(createInitialBoard);
 
+  function handleMouseDown(e: React.MouseEvent) {
+    console.log(e.clientX, e.clientY);
+  }
+
   return (
     <div className="chess-grid">
       {board.map((row, y) =>
@@ -117,6 +121,7 @@ export default function Board() {
             <div
               style={{ backgroundColor: isLight ? "#e3c9a6" : "#75a94e" }}
               className="chess-tile"
+              key={x + y}
             >
               <h1
                 draggable={false}
