@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import "./style.css";
 
 import whiteBishop from "../../assets/bishop-w.svg";
@@ -107,13 +107,62 @@ const pieces: Record<Team, Record<PieceType, string>> = {
 
 export default function Board() {
   const [board, setBoard] = useState<BoardState>(createInitialBoard);
+  const [piece, setPiece] = useState<Piece | null>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
-  function handleMouseDown(e: React.MouseEvent) {
-    console.log(e.clientX, e.clientY);
+  function handleMouseDown(e: React.MouseEvent<HTMLImageElement>, tile: Piece) {
+    setPiece(tile);
+    imgRef.current = e.currentTarget;
+    moveImage(e.clientX, e.clientY);
+  }
+
+  function moveImage(clientX: number, clientY: number) {
+    const el = imgRef.current;
+    if (!el) return;
+    el.style.position = "fixed";
+    el.style.width = "80px";
+    el.style.height = "80px";
+    el.style.left = `${clientX - 40}px`;
+    el.style.top = `${clientY - 40}px`;
+    el.style.pointerEvents = "none";
+    el.style.zIndex = "10";
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!piece) return;
+    moveImage(e.clientX, e.clientY);
+  }
+
+  function handleMouseUp(e: React.MouseEvent<HTMLDivElement>) {
+    if (!piece) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const toX = Math.floor((e.clientX - rect.left) / 100);
+    const toY = Math.floor((e.clientY - rect.top) / 100);
+    const inside = toX >= 0 && toX < 8 && toY >= 0 && toY < 8;
+
+    if (imgRef.current) imgRef.current.removeAttribute("style");
+    imgRef.current = null;
+
+    if (inside) {
+      setBoard((prev) => {
+        const next = prev.map((row) => [...row]);
+        next[piece.y][piece.x] = null;
+        next[toY][toX] = { ...piece, x: toX, y: toY };
+        return next;
+      });
+    }
+
+    setPiece(null);
   }
 
   return (
-    <div className="chess-grid">
+    <div
+      className="chess-grid"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
       {board.map((row, y) =>
         row.map((tile, x) => {
           const isLight = (x + y) % 2 === 0;
@@ -121,7 +170,7 @@ export default function Board() {
             <div
               style={{ backgroundColor: isLight ? "#e3c9a6" : "#75a94e" }}
               className="chess-tile"
-              key={x + y}
+              key={`${x}-${y}`}
             >
               <h1
                 draggable={false}
@@ -135,6 +184,7 @@ export default function Board() {
                   alt=""
                   draggable={false}
                   className="chess-piece"
+                  onMouseDown={(e) => handleMouseDown(e, tile)}
                 />
               )}
             </div>
